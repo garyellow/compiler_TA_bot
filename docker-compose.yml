@@ -1,0 +1,9 @@
+services:
+  bot:
+    container_name: compiler-bot
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
