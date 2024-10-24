@@ -1,2 +1,10 @@
+# environment
 .venv/
+.env.example
+
+# git
+.git
+.gitignore
+
+# cmd
 run.cmd
