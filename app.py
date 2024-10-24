@@ -99,7 +99,6 @@ class JudgeModal(ui.Modal, title="Judge"):
         await interaction.response.defer()
 
 
-
 class LoginView(ui.View):
     """登入的 View。"""
 
@@ -274,7 +273,12 @@ def _login(user_id: int, username: str, password: str) -> None:
 
 
 async def _fetch_answers(
-    interaction: Interaction, number: int, limit: int = 3, ref: bool = False
+    interaction: Interaction,
+    number: int,
+    limit: int = 3,
+    ref: bool = False,
+    disable_md: bool = False,
+    delete_after: int = DELETE_TIME,
 ):
     """取得指定問題的繳交答案。
 
@@ -286,17 +290,21 @@ async def _fetch_answers(
         輸入要顯示的回答數量。
     ref: bool
         是否顯示參考答案。
+    disable_md: bool
+        是否禁用 Markdown。
+    delete_after: int
+        設定刪除訊息的時間。
     """
 
     user_id = interaction.user.id
     if not _is_login(user_id):
         if interaction.response.is_done():
             await interaction.channel.send(
-                "請先登入", view=LoginView(), delete_after=DELETE_TIME
+                "請先登入", view=LoginView(), delete_after=delete_after
             )
         else:
             await interaction.response.send_message(
-                "請先登入", view=LoginView(), delete_after=DELETE_TIME
+                "請先登入", view=LoginView(), delete_after=delete_after
             )
 
         return
@@ -322,13 +330,20 @@ async def _fetch_answers(
                 "#main > div > h5.ui.attached.orange.header"
             ).find_next_sibling()
 
-            await interaction.channel.send(f"# Reference:\n{content.text}")
+            reference_content = (
+                f"# Reference:\n```{content.text}```"
+                if disable_md
+                else f"# Reference:\n{content.text}"
+            )
+            await interaction.channel.send(reference_content, delete_after=delete_after)
 
     else:
         if interaction.response.is_done():
-            await interaction.channel.send(f"#{number} 沒人繳交答案")
+            await interaction.channel.send(f"#{number} 沒人繳交答案", silent=True)
         else:
-            await interaction.response.send_message(f"#{number} 沒人繳交答案")
+            await interaction.response.send_message(
+                f"#{number} 沒人繳交答案", silent=True
+            )
 
         return
 
@@ -349,10 +364,15 @@ async def _fetch_answers(
         query_params = parse_qs(urlparse(answer_url).query)
         answer_id = query_params.get("target", [None])[0]
 
+        message_content = (
+            f"\n\u200b\n>>> ```{content.text.strip(' \n')}```"
+            if disable_md
+            else f"\n\u200b\n>>> {content.text.strip(' \n')}"
+        )
         await interaction.channel.send(
-            "\n\u200b\n>>> " + content.text.strip(" \n"),
+            message_content,
             view=JudgeView(answer_id, csrf_token),
-            delete_after=DELETE_TIME,
+            delete_after=delete_after,
         )
 
 
@@ -468,13 +488,19 @@ async def logout(interaction: Interaction):
 
 
 @bot.tree.command()
-async def fetch_problem(interaction: Interaction, number: int):
+async def fetch_problem(
+    interaction: Interaction,
+    number: int,
+    disable_md: bool = False,
+):
     """取得指定問題。
 
     Parameters
     -----------
     number: int
         輸入問題編號。
+    disable_md: bool
+        是否禁用 Markdown。
     """
 
     user_id = interaction.user.id
@@ -498,18 +524,25 @@ async def fetch_problem(interaction: Interaction, number: int):
     content = sub(r"!\[", "[", content)
     reference = sub(r"!\[", "[", reference)
 
-    await interaction.followup.send(
+    message = (
         f"# No.{number}\n\n"
         f"### Chapter: {chapter}\n"
         f"## Title: {title}\n\n"
         f"## Content:\n{content}\n"
-        f"## Reference:\n{reference}\n\u200b"
+        f"## Reference:\n"
     )
+    message += f"```{reference}```\n\u200b" if disable_md else f"{reference}\n\u200b"
+
+    await interaction.followup.send(message)
 
 
 @bot.tree.command()
 async def fetch_answers(
-    interaction: Interaction, number: int, limit: int = 3, ref: bool = False
+    interaction: Interaction,
+    number: int,
+    limit: int = 3,
+    ref: bool = False,
+    disable_md: bool = False,
 ):
     """取得指定問題的繳交答案。
 
@@ -523,7 +556,7 @@ async def fetch_answers(
         是否顯示參考答案。
     """
 
-    await _fetch_answers(interaction, number, limit, ref)
+    await _fetch_answers(interaction, number, limit, ref, disable_md)
 
 
 @bot.tree.command()
@@ -532,6 +565,7 @@ async def set_task(
     number: int,
     limit: int = 3,
     ref: bool = False,
+    disable_md: bool = False,
     interval: int = 150,
 ):
     """設定定期取得指定問題的繳交答案的任務。
@@ -544,6 +578,8 @@ async def set_task(
         輸入每次要顯示的回答數量。
     ref: bool
         是否顯示參考答案。
+    disable_md: bool
+        是否禁用 Markdown。
     interval: int
         輸入取得回答的間隔時間(秒)。
     """
@@ -557,13 +593,14 @@ async def set_task(
 
     @tasks.loop(seconds=interval)
     async def repeated_task():
-        await _fetch_answers(interaction, number, limit, ref)
+        await _fetch_answers(interaction, number, limit, ref, disable_md, interval)
 
     user_tasks = _get_or_create_user_tasks(user_id)
     exist = number in user_tasks
-    user_tasks[number] = repeated_task
 
     if exist:
+        user_tasks[number].cancel()
+        del user_tasks[number]
         await interaction.response.send_message(
             f"已重新設定每 {interval} 秒取得一次 #{number} 回答的任務"
         )
@@ -572,7 +609,8 @@ async def set_task(
             f"已設定每 {interval} 秒取得一次 #{number} 回答的任務"
         )
 
-    repeated_task.start()
+    user_tasks[number] = repeated_task
+    user_tasks[number].start()
 
 
 @bot.tree.command()
