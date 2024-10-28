@@ -78,25 +78,8 @@ class JudgeModal(ui.Modal, title="Judge"):
     async def on_submit(self, interaction: Interaction, /):
         """提交。"""
 
-        user_id = interaction.user.id
-        if not _is_login(interaction.user.id):
-            await interaction.channel.send(
-                "請先登入", view=LoginView(), delete_after=DELETE_TIME
-            )
-            return
-
         self.data["judgement[content]"] = self.content.value
-
-        session = sessions.get(user_id)
-        resp = session.post(judge_url, data=self.data, verify=False)
-
-        if resp.status_code == 200:
-            self.clear_items()
-            await interaction.message.edit(content="成功批改", view=self)
-        else:
-            await interaction.message.edit(content="批改失敗")
-
-        await interaction.response.defer()
+        await _submit_judgement(interaction, self)
 
 
 class LoginView(ui.View):
@@ -133,8 +116,8 @@ class LogoutView(ui.View):
 class JudgeView(ui.View):
     """批改的 View。"""
 
-    def __init__(self, answer_id: str, csrf_token: str):
-        super().__init__()
+    def __init__(self, answer_id: str, csrf_token: str, timeout: int = DELETE_TIME):
+        super().__init__(timeout=timeout)
         self.answer_id = answer_id
         self.data = {
             "utf8": "✓",
@@ -145,32 +128,32 @@ class JudgeView(ui.View):
             "button": "",
         }
 
-    @ui.button(label="通過", style=ButtonStyle.green)
+    @ui.button(label="通過", style=ButtonStyle.success)
     async def passed(self, interaction: Interaction, _: ui.Button):
         """通過。"""
 
-        if not _is_login(interaction.user.id):
-            await interaction.channel.send(
-                "請先登入", view=LoginView(), delete_after=DELETE_TIME
-            )
-            return
+        self.data["judgement[result]"] = "pass"
+        await _submit_judgement(interaction, self)
+
+    @ui.button(label="通過(備註)", style=ButtonStyle.success)
+    async def passed_with_content(self, interaction: Interaction, _: ui.Button):
+        """通過（含備註）。"""
 
         self.data["judgement[result]"] = "pass"
-
         await interaction.response.send_modal(JudgeModal(self.data))
 
     @ui.button(label="拒絕", style=ButtonStyle.danger)
     async def rejected(self, interaction: Interaction, _: ui.Button):
         """拒絕。"""
 
-        if not _is_login(interaction.user.id):
-            await interaction.channel.send(
-                "請先登入", view=LoginView(), delete_after=DELETE_TIME
-            )
-            return
+        self.data["judgement[result]"] = "reject"
+        await _submit_judgement(interaction, self)
+
+    @ui.button(label="拒絕(備註)", style=ButtonStyle.danger)
+    async def rejected_with_content(self, interaction: Interaction, _: ui.Button):
+        """拒絕（含備註）。"""
 
         self.data["judgement[result]"] = "reject"
-
         await interaction.response.send_modal(JudgeModal(self.data))
 
 
@@ -272,6 +255,28 @@ def _login(user_id: int, username: str, password: str) -> None:
     session.post(login_url, data=data, verify=False)
 
 
+async def _submit_judgement(interaction: Interaction, view: any) -> None:
+    """提交批改。"""
+
+    user_id = interaction.user.id
+    if not _is_login(user_id):
+        await interaction.channel.send(
+            "請先登入", view=LoginView(), delete_after=DELETE_TIME
+        )
+        return
+
+    session = sessions.get(user_id)
+    resp = session.post(judge_url, data=view.data, verify=False)
+
+    if resp.status_code == 200:
+        view.clear_items()
+        await interaction.message.edit(content="成功批改", view=view)
+    else:
+        await interaction.message.edit(content="批改失敗")
+
+    await interaction.response.defer()
+
+
 async def _fetch_answers(
     interaction: Interaction,
     number: int,
@@ -371,7 +376,7 @@ async def _fetch_answers(
         )
         await interaction.channel.send(
             message_content,
-            view=JudgeView(answer_id, csrf_token),
+            view=JudgeView(answer_id, csrf_token, delete_after),
             delete_after=delete_after,
         )
 
