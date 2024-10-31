@@ -128,28 +128,28 @@ class JudgeView(ui.View):
             "button": "",
         }
 
-    @ui.button(label="通過", style=ButtonStyle.success)
+    @ui.button(label="通過", style=ButtonStyle.success, row=1)
     async def passed(self, interaction: Interaction, _: ui.Button):
         """通過。"""
 
         self.data["judgement[result]"] = "pass"
         await _submit_judgement(interaction, self)
 
-    @ui.button(label="通過(備註)", style=ButtonStyle.success)
+    @ui.button(label="通過(備註)", style=ButtonStyle.success, row=1)
     async def passed_with_content(self, interaction: Interaction, _: ui.Button):
         """通過（含備註）。"""
 
         self.data["judgement[result]"] = "pass"
         await interaction.response.send_modal(JudgeModal(self.data))
 
-    @ui.button(label="拒絕", style=ButtonStyle.danger)
+    @ui.button(label="拒絕", style=ButtonStyle.danger, row=2)
     async def rejected(self, interaction: Interaction, _: ui.Button):
         """拒絕。"""
 
         self.data["judgement[result]"] = "reject"
         await _submit_judgement(interaction, self)
 
-    @ui.button(label="拒絕(備註)", style=ButtonStyle.danger)
+    @ui.button(label="拒絕(備註)", style=ButtonStyle.danger, row=2)
     async def rejected_with_content(self, interaction: Interaction, _: ui.Button):
         """拒絕（含備註）。"""
 
