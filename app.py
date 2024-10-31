@@ -27,7 +27,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # 宣告各種變數、常數
-DELETE_TIME = 600
+DELETE_TIME = 900
 sessions: Dict[int, Session] = {}
 all_tasks: Dict[int, Dict[int, tasks.Loop[Coroutine[Any, Any, None]]]] = {}
 NINE_GRID_URL = "http://ninegrids.csie.ncu.edu.tw"
@@ -43,8 +43,12 @@ judge_url = f"{NINE_GRID_IP}/judgements"
 class LoginModal(ui.Modal, title="Login"):
     """登入的 Modal。"""
 
-    username = ui.TextInput(label="Username", placeholder="輸入使用者名稱(學號)")
-    password = ui.TextInput(label="Password", placeholder="輸入密碼")
+    def __init__(self):
+        super().__init__(timeout=DELETE_TIME)
+        self.username = ui.TextInput(label="Username", placeholder="輸入使用者名稱(學號)")
+        self.add_item(self.username)
+        self.password = ui.TextInput(label="Password", placeholder="輸入密碼")
+        self.add_item(self.password)
 
     async def on_submit(self, interaction: Interaction, /):
         """登入。"""
@@ -65,7 +69,7 @@ class JudgeModal(ui.Modal, title="Judge"):
     """批改的 Modal。"""
 
     def __init__(self, data: Dict):
-        super().__init__()
+        super().__init__(timeout=DELETE_TIME)
         self.data = data
 
     content = ui.TextInput(
@@ -86,7 +90,7 @@ class LoginView(ui.View):
     """登入的 View。"""
 
     def __init__(self, label: str = "登入"):
-        super().__init__()
+        super().__init__(timeout=DELETE_TIME)
         self.login_button = ui.Button(label=label, style=ButtonStyle.primary)
         self.login_button.callback = self.login
         self.add_item(self.login_button)
@@ -98,6 +102,9 @@ class LoginView(ui.View):
 
 class LogoutView(ui.View):
     """登出的 View。"""
+
+    def __init__(self):
+        super().__init__(timeout=DELETE_TIME)
 
     @ui.button(label="登出", style=ButtonStyle.danger)
     async def logout(self, interaction: Interaction, _: ui.Button):
@@ -161,7 +168,7 @@ class StopTaskView(ui.View):
     """停止定期取得指定問題的繳交答案的 View。"""
 
     def __init__(self, user_tasks: Dict[int, tasks.Loop[Coroutine[Any, Any, None]]]):
-        super().__init__()
+        super().__init__(timeout=DELETE_TIME)
         self.user_tasks = user_tasks
         for number, _ in user_tasks.items():
             button = ui.Button(label=f"#{number}", style=ButtonStyle.danger)
@@ -192,7 +199,7 @@ class StopTaskView(ui.View):
             button.disabled = True
 
         await interaction.response.edit_message(
-            content=f"成功停止 #{number} 的任務", view=self, delete_after=DELETE_TIME
+            content=f"成功停止 #{number} 的任務", view=self
         )
 
 
@@ -321,11 +328,13 @@ async def _fetch_answers(
     if answers := soup.select("#main > div > table > tbody > tr"):
         if interaction.response.is_done():
             await interaction.channel.send(
-                f"#{number} 有 {len(answers)} 筆繳交答案，顯示前 {min(len(answers),limit)} 筆。"
+                f"#{number} 有 {len(answers)} 筆繳交答案，顯示前 {min(len(answers),limit)} 筆。",
+                delete_after=DELETE_TIME,
             )
         else:
             await interaction.response.send_message(
-                f"#{number} 有 {len(answers)} 筆繳交答案，顯示前 {min(len(answers),limit)} 筆。"
+                f"#{number} 有 {len(answers)} 筆繳交答案，顯示前 {min(len(answers),limit)} 筆。",
+                delete_after=DELETE_TIME,
             )
 
         if ref:
@@ -470,7 +479,9 @@ async def login(interaction: Interaction, username: str, password: str):
     _login(user_id, username, password)
 
     if user := _is_login(user_id):
-        await interaction.response.send_message(f"{user} 登入成功！")
+        await interaction.response.send_message(
+            f"{user} 登入成功！", delete_after=DELETE_TIME
+        )
     else:
         await interaction.response.send_message(
             "登入失敗！", view=LoginView("重試"), delete_after=DELETE_TIME
@@ -644,9 +655,7 @@ async def stop_task(interaction: Interaction, number: int = None):
                 delete_after=DELETE_TIME,
             )
         else:
-            await interaction.response.send_message(
-                "沒有任務可以停止", delete_after=DELETE_TIME
-            )
+            await interaction.response.send_message("沒有任務可以停止")
     else:
         if number in user_tasks:
             user_tasks[number].cancel()
