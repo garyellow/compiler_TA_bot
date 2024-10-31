@@ -40,12 +40,38 @@ query_url = f"{NINE_GRID_IP}/answers?quiz="
 judge_url = f"{NINE_GRID_IP}/judgements"
 
 
+@unique
+class PAGE(Enum):
+    """Nine Grids 頁面。"""
+
+    HOME = auto()
+    LOGIN = auto()
+    USER = auto()
+    CHAPTER = auto()
+    QUIZ = auto()
+    ANSWER = auto()
+    JUDGEMENT = auto()
+
+
+PAGE_URLS = {
+    PAGE.HOME: "",
+    PAGE.LOGIN: "/p/users/sign_in",
+    PAGE.USER: "/users",
+    PAGE.CHAPTER: "/chapters",
+    PAGE.QUIZ: "/quizzes",
+    PAGE.ANSWER: "/answers",
+    PAGE.JUDGEMENT: "/judgements",
+}
+
+
 class LoginModal(ui.Modal, title="Login"):
     """登入的 Modal。"""
 
     def __init__(self):
         super().__init__(timeout=DELETE_TIME)
-        self.username = ui.TextInput(label="Username", placeholder="輸入使用者名稱(學號)")
+        self.username = ui.TextInput(
+            label="Username", placeholder="輸入使用者名稱(學號)"
+        )
         self.add_item(self.username)
         self.password = ui.TextInput(label="Password", placeholder="輸入密碼")
         self.add_item(self.password)
@@ -406,30 +432,6 @@ async def sync(ctx: commands.Context):
     await ctx.message.add_reaction("✅")
 
 
-@unique
-class PAGE(Enum):
-    """Nine Grids 頁面。"""
-
-    HOME = auto()
-    LOGIN = auto()
-    USER = auto()
-    CHAPTER = auto()
-    QUIZ = auto()
-    ANSWER = auto()
-    JUDGEMENT = auto()
-
-
-PAGE_URLS = {
-    PAGE.HOME: "",
-    PAGE.LOGIN: "/p/users/sign_in",
-    PAGE.USER: "/users",
-    PAGE.CHAPTER: "/chapters",
-    PAGE.QUIZ: "/quizzes",
-    PAGE.ANSWER: "/answers",
-    PAGE.JUDGEMENT: "/judgements",
-}
-
-
 @bot.tree.command()
 async def show_url(interaction: Interaction, page: PAGE = PAGE.HOME):
     """顯示 Nine Grids 的網址。
@@ -570,6 +572,8 @@ async def fetch_answers(
         輸入要顯示的回答數量。
     ref: bool
         是否顯示參考答案。
+    disable_md: bool
+        是否禁用 Markdown。
     """
 
     await _fetch_answers(interaction, number, limit, ref, disable_md)
