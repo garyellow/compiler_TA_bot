@@ -587,6 +587,7 @@ async def set_task(
     ref: bool = False,
     disable_md: bool = False,
     interval: int = 150,
+    duration: int = 240,
 ):
     """設定定期取得指定問題的繳交答案的任務。
 
@@ -602,6 +603,8 @@ async def set_task(
         是否禁用 Markdown，預設為 False。
     interval: int
         輸入取得回答的間隔時間(秒)，預設為 150 秒。
+    duration: int
+        任務執行的總時間(分鐘)，預設為 240 分鐘。
     """
 
     user_id = interaction.user.id
@@ -611,7 +614,9 @@ async def set_task(
         )
         return
 
-    @tasks.loop(seconds=interval)
+    count = int((duration * 60) / interval)
+
+    @tasks.loop(seconds=interval, count=count)
     async def repeated_task():
         await _fetch_answers(interaction, number, limit, ref, disable_md, interval)
 
@@ -622,11 +627,11 @@ async def set_task(
         user_tasks[number].cancel()
         del user_tasks[number]
         await interaction.response.send_message(
-            f"已重新設定每 {interval} 秒取得一次 #{number} 回答的任務"
+            f"已重新設定每 {interval} 秒取得一次 #{number} 回答的任務，將持續 {duration} 分鐘"
         )
     else:
         await interaction.response.send_message(
-            f"已設定每 {interval} 秒取得一次 #{number} 回答的任務"
+            f"已設定每 {interval} 秒取得一次 #{number} 回答的任務，將持續 {duration} 分鐘"
         )
 
     user_tasks[number] = repeated_task
