@@ -325,13 +325,13 @@ async def _fetch_answers(
     number: int
         輸入問題編號。
     limit: int
-        輸入要顯示的回答數量。
+        輸入要顯示的回答數量，預設為 3 筆。
     ref: bool
-        是否顯示參考答案。
+        是否顯示參考答案，預設為 False。
     disable_md: bool
-        是否禁用 Markdown。
+        是否禁用 Markdown，預設為 False。
     delete_after: int
-        設定刪除訊息的時間。
+        設定刪除訊息的時間，預設為 900 秒。
     """
 
     user_id = interaction.user.id
@@ -439,7 +439,7 @@ async def show_url(interaction: Interaction, page: PAGE = PAGE.HOME):
     Parameters
     -----------
     page: PAGE
-        選擇頁面。
+        選擇頁面，預設為首頁。
     """
 
     await interaction.response.send_message(NINE_GRID_URL + PAGE_URLS[page])
@@ -518,7 +518,7 @@ async def fetch_problem(
     number: int
         輸入問題編號。
     disable_md: bool
-        是否禁用 Markdown。
+        是否禁用 Markdown，預設為 False。
     """
 
     user_id = interaction.user.id
@@ -569,11 +569,11 @@ async def fetch_answers(
     number: int
         輸入問題編號。
     limit: int
-        輸入要顯示的回答數量。
+        輸入要顯示的回答數量，預設為 3 筆。
     ref: bool
-        是否顯示參考答案。
+        是否顯示參考答案，預設為 False。
     disable_md: bool
-        是否禁用 Markdown。
+        是否禁用 Markdown，預設為 False。
     """
 
     await _fetch_answers(interaction, number, limit, ref, disable_md)
@@ -595,13 +595,13 @@ async def set_task(
     number: int
         輸入問題編號。
     limit: int
-        輸入每次要顯示的回答數量。
+        輸入每次要顯示的回答數量，預設為 3 筆。
     ref: bool
-        是否顯示參考答案。
+        是否顯示參考答案，預設為 False。
     disable_md: bool
-        是否禁用 Markdown。
+        是否禁用 Markdown，預設為 False。
     interval: int
-        輸入取得回答的間隔時間(秒)。
+        輸入取得回答的間隔時間(秒)，預設為 150 秒。
     """
 
     user_id = interaction.user.id
