@@ -28,7 +28,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # 宣告各種變數、常數
-DELETE_TIME = 900
+DELETE_TIME = 1800
 sessions: Dict[int, Session] = {}
 all_tasks: Dict[int, Dict[int, tasks.Loop[Coroutine[Any, Any, None]]]] = {}
 NINE_GRID_URL = "http://ninegrids.csie.ncu.edu.tw"
@@ -332,7 +332,7 @@ async def _fetch_answers(
     disable_md: bool
         是否禁用 Markdown，預設為 False。
     delete_after: int
-        設定刪除訊息的時間，預設為 900 秒。
+        設定刪除訊息的時間，預設為 1800 秒。
     """
 
     user_id = interaction.user.id
@@ -380,10 +380,12 @@ async def _fetch_answers(
 
     else:
         if interaction.response.is_done():
-            await interaction.channel.send(f"#{number} 沒人繳交答案", silent=True)
+            await interaction.channel.send(
+                f"#{number} 沒人繳交答案", silent=True, delete_after=DELETE_TIME
+            )
         else:
             await interaction.response.send_message(
-                f"#{number} 沒人繳交答案", silent=True
+                f"#{number} 沒人繳交答案", silent=True, delete_after=DELETE_TIME
             )
 
         return
