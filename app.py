@@ -1,8 +1,9 @@
 """A Discord bot for Nine Grids."""
 
 import logging
-import os
 from enum import Enum, auto, unique
+from math import ceil
+from os import getenv
 from re import sub
 from typing import Any, Coroutine, Dict
 from urllib.parse import parse_qs, urlparse
@@ -614,7 +615,7 @@ async def set_task(
         )
         return
 
-    count = int((duration * 60) / interval)
+    count = ceil(duration * 60 / interval)
 
     @tasks.loop(seconds=interval, count=count)
     async def repeated_task():
@@ -675,4 +676,4 @@ async def stop_task(interaction: Interaction, number: int = None):
 
 
 if __name__ == "__main__":
-    bot.run(os.getenv("DISCORD_TOKEN"), log_handler=handler)
+    bot.run(getenv("DISCORD_TOKEN"), log_handler=handler)
