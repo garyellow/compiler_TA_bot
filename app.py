@@ -365,17 +365,17 @@ async def _fetch_answers(
             )
 
         if ref:
-            resp = session.get(f"{quiz_url}/{number}", verify=False)
+            resp = session.get(f"{quiz_url}/{number}/edit", verify=False)
             soup = BeautifulSoup(resp.text, "lxml")
-            content = soup.select_one(
-                "#main > div > h5.ui.attached.orange.header"
-            ).find_next_sibling()
+            reference = soup.select_one("textarea#quiz_reference").text
+            reference = sub(r"!\[", "[", reference)
 
             reference_content = (
-                f"# Reference:\n```{content.text}```"
+                f"# Reference:\n```{reference}```"
                 if disable_md
-                else f"# Reference:\n{content.text}"
+                else f"# Reference:\n{reference}"
             )
+
             await interaction.channel.send(reference_content, delete_after=delete_after)
 
     else:
@@ -533,7 +533,7 @@ async def fetch_problem(
 
     await interaction.response.defer()
     session = sessions.get(user_id)
-    resp = session.get(f"{quiz_url}/{str(number)}/edit", verify=False)
+    resp = session.get(f"{quiz_url}/{number}/edit", verify=False)
     soup = BeautifulSoup(resp.text, "lxml")
 
     chapter_div = soup.select_one("input[name='quiz[chapter_id]']").find_parent("div")
@@ -552,7 +552,7 @@ async def fetch_problem(
         f"## Content:\n{content}\n"
         f"## Reference:\n"
     )
-    message += f"```{reference}```\n\u200b" if disable_md else f"{reference}\n\u200b"
+    message += f"```{reference}```" if disable_md else f"{reference}"
 
     await interaction.followup.send(message)
 
