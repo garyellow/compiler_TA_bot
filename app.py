@@ -408,9 +408,9 @@ async def _fetch_answers(
         answer_id = query_params.get("target", [None])[0]
 
         message_content = (
-            f"\n\u200b\n>>> ```{content.text.strip(' \n')}```"
+            f"\n\u200b\n>>> ```{content.text.lstrip('\n').rstrip(' \n')}```"
             if disable_md
-            else f"\n\u200b\n>>> {content.text.strip(' \n')}"
+            else f"\n\u200b\n>>> {content.text.lstrip('\n').rstrip(' \n')}"
         )
         await interaction.channel.send(
             message_content,
